@@ -37,6 +37,8 @@ library(vcfR)
 library(vroom)
 library(RColorBrewer)
 # 
+usethis::use_git()
+usethis::use_github()
 dnacountsraw <- vroom("SCF2m12dnacounts_qual60.table", delim = "\t") # dna counts
 rnacountsraw <-vroom("SCF2m12rnacounts_qual60.table", delim = "\t") #rna counts 
 ```
