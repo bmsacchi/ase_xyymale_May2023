@@ -1774,53 +1774,9 @@ sanity checking with the snps I have, getting depths from the vcf
 directly, etc.etc</p>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuZG5hY291bnRzcmF3IDwtIG11dGF0ZShkbmFjb3VudHNyYXcsIHZhcmlhbnRJRCA9IHN0cl9jKGNvbnRpZywnXycscG9zaXRpb24pKSAjXG5ybmFjb3VudHNyYXcgPC0gbXV0YXRlKHJuYWNvdW50c3JhdywgdmFyaWFudElEID0gc3RyX2MoY29udGlnLCdfJyxwb3NpdGlvbikpICNcbiMgY3V0b2ZmIG9mIGF0IGxlYXN0IDE2IHJlYWRzIC0gQ2FzdGVsIGV0IGFsLiAyMDE1LCBmb3IgUk5BIG9ubHlcbiMgc2VsZWN0IGltcG9ydGFudCBjb2x1bW5zIGFuZCBjcmVhdGUgcmVmIHJhdGlvIGNvbHVtblxucm5hY291bnRzIDwtIHJuYWNvdW50c3JhdyAlPiUgZmlsdGVyKHRvdGFsQ291bnQ+PTE2KSAlPiUgXG4gIHNlbGVjdChjb250aWc6dG90YWxDb3VudCkgJT4lXG4gIG11dGF0ZShybmFyZWZyYXRpbyA9IHJlZkNvdW50L3RvdGFsQ291bnQpXG5kbmFjb3VudHMgPC0gZG5hY291bnRzcmF3ICU+JSBzZWxlY3QoY29udGlnOnRvdGFsQ291bnQpICU+JSAgZmlsdGVyKHRvdGFsQ291bnQ+PTE2KSAlPiUgZmlsdGVyKHRvdGFsQ291bnQ8NjApICU+JVxuICBtdXRhdGUoZG5hcmVmcmF0aW8gPSByZWZDb3VudC90b3RhbENvdW50KSAlPiUgZmlsdGVyKC4sZG5hcmVmcmF0aW8hPTEpICU+JSBcbiAgZmlsdGVyKC4sZG5hcmVmcmF0aW8hPTApIFxuXG4jY29tYm9jb3VudHMgPC0gdnJvb20oXCJybmFkbmFjb3VudHNjb21iaW5lZC50eHRcIilcbmNvbWJvY291bnRzIDwtIGlubmVyX2pvaW4oZG5hY291bnRzLHJuYWNvdW50cywgYnkgPSBjKFwiY29udGlnXCIsXCJwb3NpdGlvblwiLFwidmFyaWFudElEXCIpLFxuICAgICAgICAgICAgICAgICAgICAgICAgICBzdWZmaXggPSBjKFwiX2RuYVwiLFwiX3JuYVwiKSkgJT4lXG4gIHJlbG9jYXRlKGMoZG5hcmVmcmF0aW8scm5hcmVmcmF0aW8pLCAuYWZ0ZXIgPSB2YXJpYW50SUQpICU+JSBcbiAgbXV0YXRlKGZpbHQgPSBpZl9lbHNlKChkbmFyZWZyYXRpbyA+IHJuYXJlZnJhdGlvICYgZG5hcmVmcmF0aW8gPiAwLjUgJiBybmFyZWZyYXRpbyA+IDAuNSl8IChkbmFyZWZyYXRpbyA8IHJuYXJlZnJhdGlvICYgZG5hcmVmcmF0aW8gPCAwLjUgJiBybmFyZWZyYXRpbyA8IDAuNSksIFwidG9zc1wiLFwia2VlcFwiICkpICU+JVxuICBtdXRhdGUoc2l0ZXR5cGUgPSBjYXNlX3doZW4ocm5hcmVmcmF0aW8gPiAwLjUgJiBybmFyZWZyYXRpbyAhPSAxICB+IFwicmVmb3ZlcmV4cFwiLFxuICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgcm5hcmVmcmF0aW8gPCAwLjUgJiBybmFyZWZyYXRpbyAhPSAwIH4gXCJhbHRvdmVyZXhwXCIsXG4gICAgICAgICAgICAgICAgICAgICAgICAgICAgICBybmFyZWZyYXRpbyA9PSAwIH4gXCJyZWZzaWxlbmNlXCIsICMgMTAwJSBhbHRcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHJuYXJlZnJhdGlvID09IDEgfiBcImFsdHNpbGVuY2VcIiwgIyAxMDAlIHJlZlxuICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgcm5hcmVmcmF0aW8gPT0gMC41IH4gXCJub2FzZVwiKSkgJT4lIFxuICBmaWx0ZXIoLixmaWx0ID09IFwia2VlcFwiKVxuXG5ncm91cF9ieShjb21ib2NvdW50cyxzaXRldHlwZSkgJT4lIGNvdW50KCkgIyB0aGVyZSdzIGJlZW4gbm8gc2lnIHRlc3RpbmcgaGVyZVxuYGBgIn0= -->
-<pre class="r"><code>dnacountsraw &lt;- mutate(dnacountsraw, variantID = str_c(contig,&#39;_&#39;,position)) #
-rnacountsraw &lt;- mutate(rnacountsraw, variantID = str_c(contig,&#39;_&#39;,position)) #
-# cutoff of at least 16 reads - Castel et al. 2015, for RNA only
-# select important columns and create ref ratio column
-rnacounts &lt;- rnacountsraw %&gt;% filter(totalCount&gt;=16) %&gt;% 
-  select(contig:totalCount) %&gt;%
-  mutate(rnarefratio = refCount/totalCount)
-dnacounts &lt;- dnacountsraw %&gt;% select(contig:totalCount) %&gt;%  filter(totalCount&gt;=16) %&gt;% filter(totalCount&lt;60) %&gt;%
-  mutate(dnarefratio = refCount/totalCount) %&gt;% filter(.,dnarefratio!=1) %&gt;% 
-  filter(.,dnarefratio!=0) 
-
-#combocounts &lt;- vroom(&quot;rnadnacountscombined.txt&quot;)
-combocounts &lt;- inner_join(dnacounts,rnacounts, by = c(&quot;contig&quot;,&quot;position&quot;,&quot;variantID&quot;),
-                          suffix = c(&quot;_dna&quot;,&quot;_rna&quot;)) %&gt;%
-  relocate(c(dnarefratio,rnarefratio), .after = variantID) %&gt;% 
-  mutate(filt = if_else((dnarefratio &gt; rnarefratio &amp; dnarefratio &gt; 0.5 &amp; rnarefratio &gt; 0.5)| (dnarefratio &lt; rnarefratio &amp; dnarefratio &lt; 0.5 &amp; rnarefratio &lt; 0.5), &quot;toss&quot;,&quot;keep&quot; )) %&gt;%
-  mutate(sitetype = case_when(rnarefratio &gt; 0.5 &amp; rnarefratio != 1  ~ &quot;refoverexp&quot;,
-                              rnarefratio &lt; 0.5 &amp; rnarefratio != 0 ~ &quot;altoverexp&quot;,
-                              rnarefratio == 0 ~ &quot;refsilence&quot;, # 100% alt
-                              rnarefratio == 1 ~ &quot;altsilence&quot;, # 100% ref
-                              rnarefratio == 0.5 ~ &quot;noase&quot;)) %&gt;% 
-  filter(.,filt == &quot;keep&quot;)
-
-group_by(combocounts,sitetype) %&gt;% count() # there&#39;s been no sig testing here</code></pre>
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuZG5hY291bnRzcmF3IDwtIG11dGF0ZShkbmFjb3VudHNyYXcsIHZhcmlhbnRJRCA9IHN0cl9jKGNvbnRpZywnXycscG9zaXRpb24pKSAjXG5gYGAifQ== -->
+<pre class="r"><code>dnacountsraw &lt;- mutate(dnacountsraw, variantID = str_c(contig,&#39;_&#39;,position)) #</code></pre>
 <!-- rnb-source-end -->
-<!-- rnb-frame-begin eyJtZXRhZGF0YSI6eyJjbGFzc2VzIjpbImdyb3VwZWRfZGYiLCJ0YmxfZGYiLCJ0YmwiLCJkYXRhLmZyYW1lIl0sIm5yb3ciOjUsIm5jb2wiOjIsInN1bW1hcnkiOnsiQSB0aWJibGUiOlsiNSDDlyAyIl0sIkdyb3VwcyI6WyJzaXRldHlwZSBbNV0iXX19LCJyZGYiOiJINHNJQUFBQUFBQUFBMTJSVFU3RE1CQ0ZKMmxDaWFXaW9tNVk1Z0pFU0d3NEFPSUFDS1FzMkxqcEJGbHk3Y2cyYmRseENpN0JSYmdUVXNNa3NWRnhGczdNbHpjL3ozbThyMjlaelFCZ0JsbWF3aXluRVBMbnA0ZnJPeUJDU1FJWkZNUDdRS0lWQlFOY0Rpci9nWEhwOUE0Tkhyb1RZb1ZFMWFBbnVkTGNob1FaYktNQ0lxRUFZREUyaDkwYzRPWUxvS2dCUHI4QkxsK2lqZkpHY212OU5nR3lEWGU4YWczZllpUXZqTjVYaXJqMU05SVBPdnErLzRuN0J0RnlkRHZCY3lzY3V2Y3VtRWdVSGNlb2NxNDdKN1NpMm5RMW1maTNXMklpY05YbzdWb29MQTN5VGRub04rWEtsdTVoR001RzNmUXNmSnlmeE9rME8rdWozM0dHNnBWYUJpK1NyMUg2NUlKdVlQUldkVVlvOTNmNWVtOHJweDBQT3Rab0djaG9FbzYvWVhiUmpTa0NBQUE9In0= -->
-<div data-pagedtable="false">
-<script data-pagedtable-source type="application/json">
-{"columns":[{"label":["sitetype"],"name":[1],"type":["chr"],"align":["left"]},{"label":["n"],"name":[2],"type":["int"],"align":["right"]}],"data":[{"1":"altoverexp","2":"30215"},{"1":"altsilence","2":"12459"},{"1":"noase","2":"2392"},{"1":"refoverexp","2":"38600"},{"1":"refsilence","2":"4444"}],"options":{"columns":{"min":{},"max":[10],"total":[2]},"rows":{"min":[10],"max":[10],"total":[5]},"pages":{}}}
-  </script>
-</div>
-<!-- rnb-frame-end -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuI3Zyb29tX3dyaXRlKGNvbWJvY291bnRzLCBcInJuYWRuYWNvdW50c2NvbWJpbmVkLnR4dFwiLGNvbF9uYW1lcz1UUlVFKVxuXG5tZWFuKGNvbWJvY291bnRzJHJuYXJlZnJhdGlvKVxuYGBgIn0= -->
-<pre class="r"><code>#vroom_write(combocounts, &quot;rnadnacountscombined.txt&quot;,col_names=TRUE)
-
-mean(combocounts$rnarefratio)</code></pre>
-<!-- rnb-source-end -->
-<!-- rnb-output-begin eyJkYXRhIjoiWzFdIDAuNTcwODE2XG4ifQ== -->
-<pre><code>[1] 0.570816</code></pre>
-<!-- rnb-output-end -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxubWVhbihjb21ib2NvdW50cyRkbmFyZWZyYXRpbylcbmBgYCJ9 -->
-<pre class="r"><code>mean(combocounts$dnarefratio)</code></pre>
-<!-- rnb-source-end -->
-<!-- rnb-output-begin eyJkYXRhIjoiWzFdIDAuNTQzMjU4NlxuIn0= -->
-<pre><code>[1] 0.5432586</code></pre>
-<!-- rnb-output-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
 </div>
@@ -1970,6 +1926,18 @@ getting total counts for proportions of sig sites</li>
 </ul>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuI215dmNmPC1yZWFkLnZjZlIoXCJzY2YybTEyX2RuYV9ub2luZGVsc3F1YWw2MF9oYXAyLnJlY29kZS52Y2YuZ3pcIilcbiNzbnBudW08LW15dmNmQGZpeCAlPiUgZ3JvdXBfYnkoQ0hST00pICU+JSBzdW1tYXJpc2UoKVxuI215dmNmZGYgPC0gYXMuZGF0YS5mcmFtZShteXZjZkBmaXgpXG4jcm0obXl2Y2YpXG4jaGVhZChteXZjZmRmKVxuI3NucGxpc3Q8LXNlbGVjdChteXZjZmRmLCBDSFJPTSxQT1MpXG4jdnJvb21fd3JpdGUoc25wbGlzdCwgXCJzbnBsaXN0LnR4dFwiLCBkZWxpbSA9IFwiXFx0XCIsIGNvbF9uYW1lcyA9IFRSVUUpXG4jc25wbGlzdDwtdnJvb20oXCJzbnBsaXN0LnR4dFwiKVxuI3JtKHNucGxpc3R0ZXN0KVxuI2dyb3VwX2J5KHNucGxpc3QsIENIUk9NKSAlPiUgc3VtbWFyaXNlKG49bigpKSAlPiUgYXJyYW5nZSguLGRlc2MobikpXG5gYGAifQ== -->
+<pre class="r"><code>#myvcf&lt;-read.vcfR(&quot;scf2m12_dna_noindelsqual60_hap2.recode.vcf.gz&quot;)
+#snpnum&lt;-myvcf@fix %&gt;% group_by(CHROM) %&gt;% summarise()
+#myvcfdf &lt;- as.data.frame(myvcf@fix)
+#rm(myvcf)
+#head(myvcfdf)
+#snplist&lt;-select(myvcfdf, CHROM,POS)
+#vroom_write(snplist, &quot;snplist.txt&quot;, delim = &quot;\t&quot;, col_names = TRUE)
+#snplist&lt;-vroom(&quot;snplist.txt&quot;)
+#rm(snplisttest)
+#group_by(snplist, CHROM) %&gt;% summarise(n=n()) %&gt;% arrange(.,desc(n))</code></pre>
+<!-- rnb-source-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
 </div>
@@ -1981,6 +1949,37 @@ getting total counts for proportions of sig sites</li>
 </ul>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuIyMgcGxvdCB0b3RhbCBETkEgY291bnRzIHRvIHNlZSBpZiBhIFwibWF4XCIgcmVhZCBjb3VudCBpcyB1c2VmdWwgYXQgYWxsXG4jIGdncGxvdChwdmFscywgYWVzKHRvdGFsQ291bnRfZG5hKSkgKyBnZW9tX2hpc3RvZ3JhbShiaW53aWR0aD01KSArIHhsaW0oMCw2MCkgIyByZW1vdmVzIDg2NyByb3dzXG4jZ2dwbG90KHB2YWxzLCBhZXModG90YWxDb3VudF9kbmEpKSArIGdlb21faGlzdG9ncmFtKGJpbndpZHRoPTUpXG4jIG1kIDwtbWVhbihwdmFscyR0b3RhbENvdW50X2RuYSlcbiMgbWVhbihwdmFscyR0b3RhbENvdW50X2RuYSlcbiMgbWVkaWFuKHB2YWxzJHRvdGFsQ291bnRfZG5hKVxuIyBtYXgocHZhbHMkdG90YWxDb3VudF9kbmEpXG4jIG1pbihwdmFscyR0b3RhbENvdW50X2RuYSlcbiMgXG4jICMgaHR0cHM6Ly9hY2FkZW1pYy5vdXAuY29tL2Jpb2luZm9ybWF0aWNzL2FydGljbGUvMzAvMjAvMjg0My8yNDIyMTQ1XG4jICMgRWFjaCBjaG9zZW4gdGhyZXNob2xkIHlpZWxkcyBhIHBvaW50IGluIHRoZSBwbG90LiBBbiBhcnJvdyBwb2ludHMgdG8gYSBwb2ludCBvbiB0aGUgTUQgY3VydmUgd2hlbiB0aGUgY29ycmVzcG9uZGluZyByZWFkIGRlcHRoIGlzIHJpZ2h0IGFib3ZlIGQrNGTigL7igL7iiJogLCB3aGVyZSBkIGlzIHRoZSBtZWFuIHJlYWQgZGVwdGggYWNyb3NzIGNhbGxlZCB2YXJpYW50c1xuIyAjbWF4ZGVwdGggPC0gbWQgKyAoNCpzcXJ0KG1kKSlcbiMgI21heGRlcHRoICMgNTFcbiMgIyBub3Qgc3VyZSBpIGxpa2UgdGhpcyBjdXRvZmYuLi4gbXVjaCB0byB0aGluayBhYm91dFxuIyAjIyBvcnIuLi4gSSBzaG91bGQgZ28gdG8gdGhlIHZjZiBtYXliZVxuIyAjXCJVc3VhbGx5IGEgZ29vZCBydWxlIG9mIHRodW1iIGlzIHNvbWV0aGluZyB0aGUgbWVhbiBkZXB0aCB4IDIgLSBzbyBpbiB0aGlzIGNhc2Ugd2UgY291bGQgc2V0IG91ciBtYXhpbXVtIGRlcHRoIGF0IDQweC5cIiAtIGh0dHBzOi8vc3BlY2lhdGlvbmdlbm9taWNzLmdpdGh1Yi5pby9maWx0ZXJpbmdfdmNmcy9cbiMgbWF4ZGVwdGggPC0gbWQqMlxuIyBtYXhkZXB0aCAjIDU5PyAtIG1heWJlIHRyeSBmcm9tIHRoZSB2Y2YuLi4gXG4jICNtZCA2MFxuIyBcbiMgZ2dwbG90KHB2YWxzX21kLCBhZXModG90YWxDb3VudF9kbmEpKSArIGdlb21faGlzdG9ncmFtKGJpbndpZHRoPTUpICsgeGxpbSgwLDYwKSAjIHJlbW92ZXMgODY3IHJvd3NcbiMgZ2dwbG90KHB2YWxzX21kLCBhZXModG90YWxDb3VudF9kbmEpKSArIGdlb21faGlzdG9ncmFtKGJpbndpZHRoPTUpXG4jICNtZCA8LW1lYW4ocHZhbHMkdG90YWxDb3VudF9kbmEpXG4jIG1lYW4ocHZhbHNfbWQkdG90YWxDb3VudF9kbmEpXG4jIG1lZGlhbihwdmFsc19tZCR0b3RhbENvdW50X2RuYSlcbiMgbWF4KHB2YWxzX21kJHRvdGFsQ291bnRfZG5hKVxuIyBtaW4ocHZhbHNfbWQkdG90YWxDb3VudF9kbmEpXG4jIFxuIyBwcm9wbjwtIGxlZnRfam9pbihzaWd0ZXN0LCB0b3RhbG51bSwgYnkgPSBjKFwiY29udGlnXCI9XCJjb250aWdcIikpICU+JSBtdXRhdGUoLiwgcHJvcCA9IG5fc2lnL25fYWxsKVxuYGBgIn0= -->
+<pre class="r"><code>## plot total DNA counts to see if a &quot;max&quot; read count is useful at all
+# ggplot(pvals, aes(totalCount_dna)) + geom_histogram(binwidth=5) + xlim(0,60) # removes 867 rows
+#ggplot(pvals, aes(totalCount_dna)) + geom_histogram(binwidth=5)
+# md &lt;-mean(pvals$totalCount_dna)
+# mean(pvals$totalCount_dna)
+# median(pvals$totalCount_dna)
+# max(pvals$totalCount_dna)
+# min(pvals$totalCount_dna)
+# 
+# # https://academic.oup.com/bioinformatics/article/30/20/2843/2422145
+# # Each chosen threshold yields a point in the plot. An arrow points to a point on the MD curve when the corresponding read depth is right above d+4d‾‾√ , where d is the mean read depth across called variants
+# #maxdepth &lt;- md + (4*sqrt(md))
+# #maxdepth # 51
+# # not sure i like this cutoff... much to think about
+# ## orr... I should go to the vcf maybe
+# #&quot;Usually a good rule of thumb is something the mean depth x 2 - so in this case we could set our maximum depth at 40x.&quot; - https://speciationgenomics.github.io/filtering_vcfs/
+# maxdepth &lt;- md*2
+# maxdepth # 59? - maybe try from the vcf... 
+# #md 60
+# 
+# ggplot(pvals_md, aes(totalCount_dna)) + geom_histogram(binwidth=5) + xlim(0,60) # removes 867 rows
+# ggplot(pvals_md, aes(totalCount_dna)) + geom_histogram(binwidth=5)
+# #md &lt;-mean(pvals$totalCount_dna)
+# mean(pvals_md$totalCount_dna)
+# median(pvals_md$totalCount_dna)
+# max(pvals_md$totalCount_dna)
+# min(pvals_md$totalCount_dna)
+# 
+# propn&lt;- left_join(sigtest, totalnum, by = c(&quot;contig&quot;=&quot;contig&quot;)) %&gt;% mutate(., prop = n_sig/n_all)</code></pre>
+<!-- rnb-source-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
 <p>RNA ref ratio</p>
