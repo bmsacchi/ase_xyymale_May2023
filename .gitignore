@@ -3,8 +3,8 @@
 .Rdata
 .httr-oauth
 .DS_Store
-*.table
 *.fa*
 *.fasta*
 *.dict
+*.table
 nohup.out
