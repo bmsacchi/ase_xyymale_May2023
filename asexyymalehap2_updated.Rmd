@@ -20,23 +20,23 @@ editor_options:
 
 #### SC male DNA and RNA
 
-aligned to hap 2 reference, reads counted using GATK ASEreadcounter
+aligned to hap 2 reference, reads counted using GATK ASE
 
 #### read in text files
+
+gatk AseReadcounter output files copied
+ohta2/bianca.sacchi/xyy_male/analyses/asecounts_hap2/
+
 ```{r include=FALSE}
 # required packages
 library(vroom)
-library(countdata)
 library(tidyverse) 
 library(BSDA)
 library(cowplot)
 library(vcfR)
 library(vroom)
 library(RColorBrewer)
-### create repo ###
-#usethis::use_git()
-#usethis::use_github() 
-### raw data ###
+
 dnacountsraw <- vroom("SCF2m12dnacounts30.table", delim = "\t") # dna counts
 rnacountsraw <-vroom("SCF2m12rnacounts_qual30.table", delim = "\t") #rna counts 
 ```
@@ -44,13 +44,13 @@ rnacountsraw <-vroom("SCF2m12rnacounts_qual30.table", delim = "\t") #rna counts
 #### mutate (make variant ID), filter, combine
 
 For (possibly predictable) reasons, the ASEReadcounter output for DNA
-misses some low read-depth but confidently called heterozygous snps. This
+misses some low read-depth but cofidently called heterozygous snps. This
 results in some 0's in the refCount, altCount, and total count
 categories in the DNA counts file - which is not expected. option -
 sanity checking with the snps I have, getting depths from the vcf
 directly, etc.etc
 
-```{r combine read count files}
+```{r}
 dnacountsraw <- mutate(dnacountsraw, variantID = str_c(contig,'_',position)) #
 rnacountsraw <- mutate(rnacountsraw, variantID = str_c(contig,'_',position)) #
 # cutoff of at least 16 reads - Castel et al. 2015, for RNA only
@@ -62,9 +62,7 @@ dnacounts <- dnacountsraw %>% select(contig:totalCount) %>%  filter(totalCount>=
   mutate(dnarefratio = refCount/totalCount) %>% filter(.,dnarefratio!=1) %>% 
   filter(.,dnarefratio!=0) 
 
-#combocounts <- vroom("rnadnacountscombined.txt")
-combocounts <- inner_join(dnacounts,rnacounts, by = c("contig","position","variantID"),
-                          suffix = c("_dna","_rna")) %>%
+combocounts_oldfilter <- inner_join(dnacounts,rnacounts, by = c("contig","position","variantID"),suffix = c("_dna","_rna")) %>%
   relocate(c(dnarefratio,rnarefratio), .after = variantID) %>% 
   mutate(filt = if_else((dnarefratio > rnarefratio & dnarefratio > 0.5 & rnarefratio > 0.5)| (dnarefratio < rnarefratio & dnarefratio < 0.5 & rnarefratio < 0.5), "toss","keep" )) %>%
   mutate(sitetype = case_when(rnarefratio > 0.5 & rnarefratio != 1  ~ "refoverexp",
@@ -73,20 +71,43 @@ combocounts <- inner_join(dnacounts,rnacounts, by = c("contig","position","varia
                               rnarefratio == 1 ~ "altsilence", # 100% ref
                               rnarefratio == 0.5 ~ "noase")) %>% 
   filter(.,filt == "keep")
-
+#combocounts <- vroom("rnadnacountscombined.txt")
+combocounts <- inner_join(dnacounts,rnacounts, by = c("contig","position","variantID"),suffix = c("_dna","_rna")) %>%
+  relocate(c(dnarefratio,rnarefratio), .after = variantID) %>% 
+  #mutate(filt = if_else((dnarefratio > rnarefratio & dnarefratio > 0.5 & rnarefratio > 0.5)| (dnarefratio < rnarefratio & dnarefratio < 0.5 & rnarefratio < 0.5), "toss","keep" )) %>%
+  mutate(sitetype = case_when(rnarefratio > 0.5 & rnarefratio != 1  ~ "refoverexp",
+                              rnarefratio < 0.5 & rnarefratio != 0 ~ "altoverexp",
+                              rnarefratio == 0 ~ "refsilence", # 100% alt
+                              rnarefratio == 1 ~ "altsilence", # 100% ref
+                              rnarefratio == 0.5 ~ "noase")) #%>% 
+  #filter(.,filt == "keep")
+group_by(combocounts_oldfilter,sitetype) %>% count()
 group_by(combocounts,sitetype) %>% count() # there's been no sig testing here
 #vroom_write(combocounts, "rnadnacountscombined.txt",col_names=TRUE)
 
+```
+
+number of het sites in dna - 6,037,599
+
+number of het sites in rna - 335,571 before \>=16 total read count
+cutoff
+
+number of het sites in rna - 98,792 after read count cutoff (\~1/3 of
+sites don't have a high enough read count for a reliable ASE estimation)
+
+Filtering out sites where the dna ase is more extreme and in the same
+direction as the rna ase ... 80,385
+
+```{r}
 mean(combocounts$rnarefratio)
 mean(combocounts$dnarefratio)
 
 ```
-### Reference bias
-mean rnarefratio is 0.570816, mean dnarefratio is 0.5432586
-slightly higher than with previous genome assembly version
+
+
 ### site-wise statistical tests for ASE 
-fisher test to see if DNA refratio is sig diff from that of RNA
-binomial test for ase
+#### fisher test to see if DNA refratio is sig diff from that of RNA
+
 ```{r}
 # called counts
 # and then turn rna,dna, alt, ref into separate categories?
@@ -97,20 +118,19 @@ fisher <- function(a,b,c,d){
 }
 bt <- function(a, b, p = 0.5) {binom.test(a, b, 0.5, alternative=
                                             c("two.sided"), conf.level = 0.95)$p.value}
-
-# positions of sex linked regions
-combocounts_sl<-combocounts %>% mutate(contig = factor(contig, levels = c("A1","A2","A4","Y1","Y2"))) %>%
-  mutate(sexlink = case_when(
-    (contig == 'Y1' & position > 64000000 & position < 272000000) ~ 'OldSLR',
-    (contig == 'Y1' & position > 272000000) ~ 'PAR1',
-    (contig == 'Y2' & position > 159000000) ~ 'OldSLR',
-    (contig == 'Y1' & position < 64000000) ~ 'NewSLR',
-    (contig == 'Y2' & position >121000000 & position <159000000 )  ~ 'NewSLR',
-    (contig == 'Y2' & position < 121000000) ~ 'PAR2',
-    contig == 'A1' ~ 'A1',
-    contig == 'A2' ~ 'A2',
-    contig == 'A4' ~ 'A4',
-    ))
+combocounts_sl<-combocounts %>% 
+  mutate(contig=factor(contig, levels = c("A1","A2","A4","Y1","Y2"))) %>%
+  mutate(sexlink=if_else(contig=="Y1" & position<=64000000,"NewY1",
+          if_else(contig =="Y1" & (position>64000000 & position<=272000000),"OldY1",
+          if_else(contig =="Y1" & (position > 272000000 & position <= 344000000),"PAR1",
+     if_else(contig=="Y2" & position<=121000000,"PAR2",
+     if_else(contig=="Y2"& (position>121000000 & position<=159000000),"NewY2",
+     if_else(contig=="Y2" & position>159000000, "OldY2",
+     if_else(contig=="A1","A1",
+     if_else(contig=="A2","A2",
+     if_else(contig=="A4","A4",NA))))))))))
+unique(combocounts_sl$contig)
+unique(combocounts_sl$sexlink)
 
 #View(select(pvals, refCount_rna,altCount_rna, refCount_dna,altCount_dna,p))
 gc()
@@ -118,14 +138,15 @@ gc()
 pvals <- combocounts_sl %>%
   rowwise() %>%
   mutate(pfisher=fisher(refCount_dna,altCount_dna,refCount_rna,altCount_rna)[[1]]) %>%
-  mutate(pbinom=bt(refCount_rna,totalCount_rna)) #%>% ## FDR?
+  mutate(pbinom=bt(refCount_rna,totalCount_rna)) 
 pvals<- pvals %>% mutate(.,pfisherBH = (p.adjust(pfisher,"BH",n=length(pvals$pfisher)))) %>%
   mutate(.,pbinomBH = (p.adjust(pbinom,"BH",n=length(pvals$pbinom)))) 
-#apply benjaminin hochberg correction R
-nrow(filter(pvals, pfisherBH<0.05,pbinomBH<0.05)) # 6986
-nrow(filter(pvals, pbinomBH<0.05)) #22878 
 
-sigtest<- pvals %>% filter(pfisherBH<0.05) %>% filter(pbinomBH<0.05) %>% 
+#apply benjaminin hochberg correction R
+nrow(filter(pvals, pfisherBH<0.1,pbinomBH<0.1)) # 4994
+nrow(filter(pvals, pbinomBH<0.1)) #16979 
+
+sigtest<- pvals %>% filter(pfisherBH<0.1) %>% filter(pbinomBH<0.1) %>% 
   group_by(contig,sitetype) %>% summarise(n_sig = n())
 #just_binom <- pvals %>% filter(pbinomBH<0.05) %>% 
 #  group_by(contig,sitetype) %>% summarise(n_sig = n())
@@ -134,37 +155,36 @@ totalnum <- pvals %>% group_by(contig) %>% summarise(n_all= n())
 #totalnum <- group_by(snplist, CHROM) %>% summarise(n=n()) %>% arrange(.,desc(n))
 propn<- left_join(sigtest, totalnum, by = c("contig")) %>% mutate(., prop = n_sig/n_all)
 #vroom_write(pvals, "sc_male_ase_sigtests.csv",",")
-# fisher and binom test
-sigtest_sl<- pvals %>% filter(pfisherBH<0.05) %>% filter(pbinomBH<0.05) %>% 
+
+sigtest_sl<- pvals %>% filter(pfisherBH<0.1) %>% filter(pbinomBH<0.1) %>% 
   group_by(sexlink,sitetype) %>% summarise(n_sig = n())
 totalnum_sl <- pvals %>% group_by(sexlink) %>% summarise(n_all= n())
 propn_sl <- left_join(sigtest_sl,totalnum_sl, by = c("sexlink")) %>% 
   mutate(., prop = n_sig/n_all)
-print(propn_sl)
-## just the binom test
-sigtest_binom<- pvals %>% filter(pbinomBH<0.05) %>% 
+
+sigtest_binom<- pvals %>% filter(pbinomBH<0.1) %>% 
   group_by(sexlink,sitetype) %>% summarise(n_sig = n())
 totalnum_sl <- pvals %>% group_by(sexlink) %>% summarise(n_all= n())
 propn_binom <- left_join(sigtest_binom,totalnum_sl, by = c("sexlink")) %>% 
   mutate(., prop = n_sig/n_all)
-#vroom_write(pvals, "sigtable.txt")
-```
-### beta-binomial test?
-```{r}
-#countdata::bb.test()
 
-#bb <- function(a, b, p = 0.5) {bb.test(a, b, 0.5, alternative=
-#                                            c("two.sided"))$p.value}
-#pvals_beta <- combocounts_sl %>%
-#  rowwise() %>%
-  #mutate(pfisher=fisher(refCount_dna,altCount_dna,refCount_rna,altCount_rna)[[1]]) %>%
-#  mutate(pbinom=bb(refCount_rna,totalCount_rna)) #%>% ## FDR?
 ```
 
 ### Analyses
-#### to do
+
+#### to do -DEPRECATED
+-   divide by total \# snps tested - the ones that passed the read count
+    filters for both
+-   sig on autosomes, old sex chr show more ase - not neo?
+-   non recombn region too?
+-   4 categories - ref silence, alt silence, ref overexp, alt overexp
+    -   "sitetype" var
 -   sig snp in gene = gene has sig ASE - count only once
 -   repeat w hap1, use liftover/ortho list
+-   take distance of DNA from 0.5? instead of abs value
+-   filter out sites with extreme dna bias in same direction as rna
+-   for next week - table that summarizes 4 categories ate right
+    filtering.
 -   later - snps, anno TEs, connect to genes, etc. -e..g median/mean
     across genes or something This table is just the number of ASE sites
     where there is significant departure b/w the dna and rna w respect
@@ -174,6 +194,8 @@ propn_binom <- left_join(sigtest_binom,totalnum_sl, by = c("sexlink")) %>%
     getting total counts for proportions of sig sites
 
 ```{r}
+
+
 #myvcf<-read.vcfR("scf2m12_dna_noindelsqual60_hap2.recode.vcf.gz")
 #snpnum<-myvcf@fix %>% group_by(CHROM) %>% summarise()
 #myvcfdf <- as.data.frame(myvcf@fix)
@@ -181,53 +203,30 @@ propn_binom <- left_join(sigtest_binom,totalnum_sl, by = c("sexlink")) %>%
 #head(myvcfdf)
 #snplist<-select(myvcfdf, CHROM,POS)
 #vroom_write(snplist, "snplist.txt", delim = "\t", col_names = TRUE)
-#snplist<-vroom("snplist.txt")
+snplist<-vroom("snplist.txt")
 #rm(snplisttest)
-#group_by(snplist, CHROM) %>% summarise(n=n()) %>% arrange(.,desc(n))
+group_by(snplist, CHROM) %>% summarise(n=n()) %>% arrange(.,desc(n))
 ```
 
 #### exploratory plots
 
 DNA read count distributions
 
-* Settled on 60 as a max read count.
-
 ```{r}
 ## plot total DNA counts to see if a "max" read count is useful at all
-# ggplot(pvals, aes(totalCount_dna)) + geom_histogram(binwidth=5) + xlim(0,60) # removes 867 rows
-#ggplot(pvals, aes(totalCount_dna)) + geom_histogram(binwidth=5)
-# md <-mean(pvals$totalCount_dna)
-# mean(pvals$totalCount_dna)
-# median(pvals$totalCount_dna)
-# max(pvals$totalCount_dna)
-# min(pvals$totalCount_dna)
-# 
-# # https://academic.oup.com/bioinformatics/article/30/20/2843/2422145
-# # Each chosen threshold yields a point in the plot. An arrow points to a point on the MD curve when the corresponding read depth is right above d+4d‾‾√ , where d is the mean read depth across called variants
-# #maxdepth <- md + (4*sqrt(md))
-# #maxdepth # 51
-# # not sure i like this cutoff... much to think about
-# ## orr... I should go to the vcf maybe
-# #"Usually a good rule of thumb is something the mean depth x 2 - so in this case we could set our maximum depth at 40x." - https://speciationgenomics.github.io/filtering_vcfs/
-# maxdepth <- md*2
-# maxdepth # 59? - maybe try from the vcf... 
-# #md 60
-# 
-# ggplot(pvals_md, aes(totalCount_dna)) + geom_histogram(binwidth=5) + xlim(0,60) # removes 867 rows
-# ggplot(pvals_md, aes(totalCount_dna)) + geom_histogram(binwidth=5)
-# #md <-mean(pvals$totalCount_dna)
-# mean(pvals_md$totalCount_dna)
-# median(pvals_md$totalCount_dna)
-# max(pvals_md$totalCount_dna)
-# min(pvals_md$totalCount_dna)
-# 
-# propn<- left_join(sigtest, totalnum, by = c("contig"="contig")) %>% mutate(., prop = n_sig/n_all)
+ggplot(pvals, aes(totalCount_dna)) + geom_histogram(binwidth=5) + xlim(0,60) # removes 867 rows
+ggplot(pvals, aes(totalCount_dna)) + geom_histogram(binwidth=5)
+md <-mean(pvals$totalCount_dna)
+mean(pvals$totalCount_dna)
+median(pvals$totalCount_dna)
+max(pvals$totalCount_dna)
+min(pvals$totalCount_dna)
+
+
+propn<- left_join(sigtest, totalnum, by = c("contig"="contig")) %>% mutate(., prop = n_sig/n_all)
 ```
 
 RNA ref ratio
-
-* not filtered by significance
-* lower ratios in Y1, reference bias everywhere else, no significant diff b/w groups
 
 ```{r}
 #ggplot(combocounts, aes(contig, rnarefratio)) + geom_col() +theme_bw() + 
@@ -240,43 +239,41 @@ ase_df<- pvals %>% #filter(pfisherBH<0.05 & pbinomBH<0.05)
     summarise(mean_ase = mean(rnarefratio),
   sd_ase=sd(rnarefratio))
 ggplot(ase_df)
-
- ase_rna<-ggplot(ase_df,aes(contig, mean_ase)) +
+ ggplot(ase_df,aes(contig, mean_ase)) +
     geom_col(width = 0.85) +
     geom_errorbar(aes(ymin = mean_ase - sd_ase,
                       ymax = mean_ase + sd_ase),
                   color = "#22292F",
                   width = .1) +
    theme_classic() +  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-   ylab("mean reference:total read count ratio (RNA)") + geom_hline(yintercept=0.5, linetype="dashed") + ylim(0,1) + ggtitle("RNA ref:total count")
+   ylab("mean reference:total read count ratio (RNA)") + geom_hline(yintercept=0.5, linetype="dashed") + ylim(0,1)
 #ggsave("asemean_all_rna.png", height=4,width=7)
 
  ase_df_dna<- pvals %>% #filter(pfisherBH<0.05 & pbinomBH<0.05)
    group_by(contig) %>% 
     summarise(mean_ase = mean(dnarefratio),
   sd_ase=sd(dnarefratio))
-ase_dna<- ggplot(ase_df_dna,aes(contig, mean_ase)) +
+ggplot(ase_df_dna,aes(contig, mean_ase)) +
     geom_col(width = 0.85) +
     geom_errorbar(aes(ymin = mean_ase - sd_ase,
                       ymax = mean_ase + sd_ase),
                   color = "#22292F",
                   width = .1) +
    theme_classic() +  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-   ylab("mean reference:total read count ratio (DNA)") +geom_hline(yintercept=0.5, linetype="dashed") +
-  ggtitle("DNA ref:total count") +ylim(0,1)
+   ylab("mean reference:total read count ratio (DNA)") +geom_hline(yintercept=0.5, linetype="dashed") + ylim(0,1)
 #ggsave("asemean_all_dna.png", height=5,width=7)
-cowplot::plot_grid(ase_rna,ase_dna)
-```
-RNA vs DNA refratio - by sex linked region
 
-* Old Sex linked region has most obvious dip in mean ase 
+
+
+```
+
 ```{r}
 ase_df_sl<- pvals %>% #filter(pfisherBH<0.05 & pbinomBH<0.05)
    group_by(sexlink) %>% 
     summarise(mean_ase = mean(rnarefratio),
   sd_ase=sd(rnarefratio))
 
-rna_ase_sl<-ggplot(ase_df_sl,aes(sexlink, mean_ase)) +
+ggplot(ase_df_sl,aes(sexlink, mean_ase)) +
     geom_col(width = 0.85) +
     geom_errorbar(aes(ymin = mean_ase - sd_ase,
                       ymax = mean_ase + sd_ase),
@@ -290,7 +287,7 @@ rna_ase_sl<-ggplot(ase_df_sl,aes(sexlink, mean_ase)) +
    group_by(sexlink) %>% 
     summarise(mean_ase = mean(dnarefratio),
   sd_ase=sd(dnarefratio))
-dna_ase_sl<-ggplot(ase_df_dna_sl,aes(sexlink, mean_ase)) +
+ggplot(ase_df_dna_sl,aes(sexlink, mean_ase)) +
     geom_col(width = 0.85) +
     geom_errorbar(aes(ymin = mean_ase - sd_ase,
                       ymax = mean_ase + sd_ase),
@@ -299,17 +296,17 @@ dna_ase_sl<-ggplot(ase_df_dna_sl,aes(sexlink, mean_ase)) +
    theme_classic() +  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
    ylab("mean reference:total read count ratio (DNA)") + geom_hline(yintercept=0.5, linetype="dashed") + ylim(0,1)
 #ggsave("asemean_all_dna_sex.png", height=5,width=7)
-cowplot::plot_grid(rna_ase_sl,dna_ase_sl)
+
 
 ```
 
-#### plot signifiance ase proportions per chromosome/region
+#### plot sig diff b/w dna and rna
 
-By chromosome
+need to remove cases wher dna ase is suspect? sigificant (fisher test)
+ref ratios
 
-* Y1 and Y2 have elevated ref (Y) silencing, alt (X) overexpression
 ```{r}
-ggplot(propn, aes(contig,prop,fill=sitetype)) + 
+ggplot(filter(propn,contig != 'Scaffold_71'), aes(contig,prop,fill=sitetype)) + 
   geom_col() +
   theme_classic() +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + 
@@ -317,10 +314,7 @@ ggplot(propn, aes(contig,prop,fill=sitetype)) +
 #ggsave("propnsigASE_xyymale_fixed.png", width = 7, height = 5)
 
 ```
-By sex-linked region (as defined in genome paper draft)
 
-* Old sex-linked region has an extreme amount of Y silencing
-* changing p value cut off to 0.1 doesn't change the pattern much
 ```{r}
 #ggplot(filter(propn_sl,contig != 'Scaffold_71'), aes(contig,prop,fill=sitetype, group=sexlink)) + #geom_col(position="dodge",aes(group=contig)) + 
  #  geom_bar(stat = prop,
@@ -330,7 +324,7 @@ ggplot(filter(propn_sl,!is.na(sexlink)), aes(sexlink,prop,fill=sitetype)) +
   geom_col() +
   theme_classic() +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + 
-  ylab("proportion of sites with significant ASE") #+ scale_fill_discrete(name = "Site type", labels = c("X overexpressed","X silenced","Y overexpressed","Y silenced")) 
+  ylab("proportion of sites with significant ASE") + scale_fill_discrete(name = "Site type", labels = c("X overexpressed","X silenced","Y overexpressed","Y silenced")) 
   
 #ggsave("propnsigASE_sexlinkage_xyymale_fixed.png", width = 7, height = 5)
 #ggsave("propnsigASE_xyymale_2022_11_22.png", width = 7, height = 5)
@@ -339,90 +333,50 @@ ggplot(filter(propn_sl,!is.na(sexlink)), aes(sexlink,prop,fill=sitetype)) +
 ## genes - go analysis
 # how it corresponds to fraction of genes
 # patterns across genome - density of Y-silenced across etc.
+```
 
-sigtest_sl_01<- pvals %>% filter(pfisherBH<0.1) %>% filter(pbinomBH<0.1) %>% 
-  group_by(sexlink,sitetype) %>% summarise(n_sig = n())
-totalnum_sl <- pvals %>% group_by(sexlink) %>% summarise(n_all= n())
-propn_sl_01 <- left_join(sigtest_sl_01,totalnum_sl, by = c("sexlink")) %>% 
-  mutate(., prop = n_sig/n_all)
-
-ggplot(filter(propn_sl_01,!is.na(sexlink)), aes(sexlink,prop,fill=sitetype)) + 
+```{r}
+ggplot(filter(propn_binom,!is.na(sexlink)), aes(sexlink,prop,fill=sitetype)) + 
   geom_col() +
   theme_classic() +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + 
-  ylab("proportion of sites with significant ASE")
-ggsave("propnsigASE_xyymale_2023_05_22.png", width = 7, height = 5)
-
+  ylab("proportion of sites with significant ASE\n (binomial test only)") +
+  scale_fill_discrete(name = "Site type", labels = c("X overexpressed","X silenced","Y overexpressed","Y silenced"))
+#ggsave("propnsigASE_binomonly_xyymale_2022_11_22.png", width = 7, height = 5)
 ```
-
-Plot position by ASE
-```{r}
-y1plot<-ggplot(filter(pvals,contig=="Y1"), aes(position,rnarefratio)) +geom_point(aes(color=sexlink)) +geom_smooth() +theme_classic()
-
-y2plot<-ggplot(filter(pvals,contig=="Y2"), aes(position,rnarefratio)) +geom_point(aes(color=sexlink)) +geom_smooth() +theme_classic() 
-cowplot::plot_grid(y1plot,y2plot)
-#legend1 <- get_legend(
-  # create some space to the left of the legend
-#  y1plot + theme(legend.box.margin = margin(0, 0, 0, 12))
-#)
-##
-y1plotsig<-ggplot(filter(pvals,contig=="Y1",pbinomBH<0.1,pfisherBH<0.1), aes(position,rnarefratio)) +geom_point(aes(color=sexlink)) +geom_smooth() +theme_classic()
-
-y2plotsig<-ggplot(filter(pvals,contig=="Y2",pbinomBH<0.1,pfisherBH<0.1), aes(position,rnarefratio)) +geom_point(aes(color=sexlink)) +geom_smooth() +theme_classic() 
-ggsave("y1sigplot.png",plot=y1plotsig, width=7, height=5)
-ggsave("y2sigplot.png",plot=y2plotsig, width=7, height=5)
-cowplot::plot_grid(y1plotsig,y2plotsig)
-##
-ggplot(filter(pvals,pbinomBH<0.1,pfisherBH<0.1,contig=="Y1"), aes(x=position)) +geom_histogram(bins=50,aes(fill=sexlink))
-
-ggplot(filter(pvals,pbinomBH<0.1,pfisherBH<0.1,contig=="Y2"), aes(x=position)) +geom_histogram(bins=50,aes(fill=sexlink)) 
-
-ggplot(filter(pvals,contig=="Y1"), aes(x=position)) +geom_histogram(bins=50,aes(fill=sexlink)) 
-
-ggplot(filter(pvals,contig=="Y2"), aes(x=position)) +geom_histogram(bins=50,aes(fill=sexlink)) 
-```
-
-```{r eval=FALSE, include=FALSE}
-# ggplot(filter(propn_binom,!is.na(sexlink)), aes(sexlink,prop,fill=sitetype)) + 
-#   geom_col() +
-#   theme_classic() +
-#   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + 
-#   ylab("proportion of sites with significant ASE\n (binomial test only)") +
-#   scale_fill_discrete(name = "Site type", labels = c("X overexpressed","X silenced","Y overexpressed","Y silenced"))
-# #ggsave("propnsigASE_binomonly_xyymale_2022_11_22.png", width = 7, height = 5)
-```
-
-```{r eval=FALSE, include=FALSE}
 #### What genes are these snps in anyway??
+1802313 SNPs with overlapping gene annotation entries
+653114 SNPs overlap with genes
+644225 unique genes
+```{r}
 # did some bedtools/awk stuff to get everything in the right shape first
 # aight time to merge ASE results to my quasi-bed file. scaf_pos for this new file created by concatenating the scaffold and stop positions (since that's equivalent to snp pos in a vcf. hope that works?)
-# anno<-vroom("scmale_snpgeneintersect_scafpos.txt", col_names=c("contig","start","stop","variantID","contig_gene","start_gene","stop_gene","geneID","annotation","feature"))
-# #looks as it should. variantID matches exist!
-# #genes<- filter(anno, feature == "gene")
+anno<-vroom("scmale_snpgeneintersect_scafpos.txt", col_names=c("contig","start","stop","variantID","contig_gene","start_gene","stop_gene","geneID","annotation","feature"))
+#looks as it should. variantID matches exist!
+#genes<- filter(anno, feature == "gene")
 # unique genes? 
 #n_distinct(genes$variantID) 
-# ase_anno<-inner_join(pvals,anno, by = c("variantID"))
-# genes_per_site<- ase_anno %>% filter(feature == "gene") %>% 
-#   group_by(variantID) %>% summarise(mean(rnarefratio), n()) # did # overlapping genes are just on diff strands its all gucci
-# # snps to be handled the same way. i think
-# # lol
-# site_per_gene<- ase_anno %>% filter(feature == "gene") %>% 
-#   group_by(geneID,sexlink) %>% summarise(dnarefratio=mean(dnarefratio),rnarefratio=mean(rnarefratio), number=n())  # there's a gene w 100's of snps in it lmao
-# ## sig
-# site_per_gene_sig<- ase_anno %>% filter(feature == "gene", pbinomBH <0.05, pfisherBH<0.05) %>% 
-#   group_by(geneID) %>% summarise(meanrefratio=mean(rnarefratio), meandnaratio=mean(dnarefratio), number=n())
-# write_csv(ase_anno,"ase_snp_annotation_combined.csv",col_names = T)  
+ase_anno<-inner_join(pvals,anno, by = c("variantID"))
+genes_per_site<- ase_anno %>% filter(feature == "gene") %>% 
+  group_by(variantID) %>% summarise(mean(rnarefratio), n()) # did # overlapping genes are just on diff strands its all gucci
+# snps to be handled the same way. i think
+# lol
+site_per_gene<- ase_anno %>% filter(feature == "gene") %>% 
+  group_by(geneID,sexlink) %>% summarise(dnarefratio=mean(dnarefratio),rnarefratio=mean(rnarefratio), number=n())  # there's a gene w 100's of snps in it lmao
+## sig
+site_per_gene_sig<- ase_anno %>% filter(feature == "gene", pbinomBH <0.05, pfisherBH<0.05) %>% 
+  group_by(geneID) %>% summarise(meanrefratio=mean(rnarefratio), meandnaratio=mean(dnarefratio), number=n())
+write_csv(ase_anno,"ase_snp_annotation_combined.csv",col_names = T)  
 ```
 
-```{r eval=FALSE, include=FALSE}
-# ggplot(site_per_gene,aes(rnarefratio)) + geom_histogram() + facet_wrap(~sexlink)
-# ggplot(site_per_gene,aes(dnarefratio)) + geom_histogram() + facet_wrap(~sexlink)
+```{r}
+ggplot(site_per_gene,aes(rnarefratio)) + geom_histogram() + facet_wrap(~sexlink)
+ggplot(site_per_gene,aes(dnarefratio)) + geom_histogram() + facet_wrap(~sexlink)
 
 ```
-### to do
-* try plotting density of y-silenced snps
-  * clustering?
-* fraction of silenced (sig underexp) snps differ b/w sal origins??
-* epigenetic silencing??? e.g. TEs - strata or TE lol
-* 
- 
+
+
+```{r}
+
+```
+
